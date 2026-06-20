@@ -576,12 +576,17 @@
   inset: 0;
   z-index: 100;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  /* The overlay itself scrolls when the card is taller than the viewport;
+     the card keeps its natural height. `margin: auto` on the card centers it
+     while it's short, yet keeps it fully scrollable (no top clipping) when
+     it's tall — the reliable flex-centering-in-a-scroll-container pattern. */
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 20px;
 }
 .card-backdrop {
-  position: absolute;
+  /* fixed so the dim layer always covers the viewport while the overlay scrolls */
+  position: fixed;
   inset: 0;
   background: rgba(40, 24, 46, 0.45);
   -webkit-backdrop-filter: blur(3px); /* iOS Safari (<18) only supports the prefixed form */
@@ -595,9 +600,9 @@
      handwriting lands on the lines like real lined paper */
   --rule: 34px;
   width: min(440px, 92vw);
-  max-height: 88vh;
-  max-height: 88svh;
-  overflow: auto;
+  /* height fits the content; the overlay (not the card) scrolls when it's
+     too tall. margin:auto centers the card within the flex overlay. */
+  margin: auto;
   /* extra left padding leaves room for the margin line */
   padding: 38px 30px 30px 52px;
   text-align: center;
