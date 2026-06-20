@@ -1,122 +1,112 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useState } from "react";
+import { config } from "./config";
+import DarkScene from "./components/DarkScene";
+import Balloons from "./components/Balloons";
+import PhotoFrame from "./components/PhotoFrame";
+import Cake from "./components/Cake";
+import Mascot from "./components/Mascot";
+import Envelope from "./components/Envelope";
+import GreetingCard from "./components/GreetingCard";
+import { playMusic, setMusicMuted, playSfx } from "./lib/audio";
+import { fireworks, burst } from "./lib/confetti";
+import "./App.css";
+
+type Scene = "dark" | "lit";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [scene, setScene] = useState<Scene>("dark");
+  const [flash, setFlash] = useState(false);
+  const [cardOpen, setCardOpen] = useState(false);
+  const [muted, setMuted] = useState(false);
+  const [candleLit, setCandleLit] = useState(true);
+  const [mascotJump, setMascotJump] = useState(false);
+
+  const turnOnTheLights = () => {
+    if (scene === "lit") return;
+    setScene("lit");
+    setFlash(true);
+    playSfx("click");
+    playMusic();
+    fireworks();
+    setMascotJump(true);
+    window.setTimeout(() => setFlash(false), 650);
+    window.setTimeout(() => setMascotJump(false), 1300);
+  };
+
+  const openCard = () => {
+    if (cardOpen) return;
+    setCardOpen(true);
+    playSfx("pop");
+    burst(0.5, 0.5);
+  };
+
+  const blowCandles = () => {
+    if (!candleLit) return;
+    setCandleLit(false);
+    playSfx("blow");
+  };
+
+  const toggleMute = () => {
+    setMuted((prev) => {
+      const next = !prev;
+      setMusicMuted(next);
+      return next;
+    });
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <main className={`app scene-${scene}`}>
+      {scene === "dark" && <DarkScene onTurnOn={turnOnTheLights} />}
 
-      <div className="ticks"></div>
+      {scene === "lit" && (
+        <>
+          {config.showBalloons && <Balloons />}
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+          <section className="stage">
+            <h1 className="banner reveal" style={{ animationDelay: "0.1s" }}>
+              <span className="banner-small">Happy Birthday,</span>
+              <span className="banner-name">{config.recipientName}!</span>
+            </h1>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+            <div className="stage-row">
+              {config.showMascot && (
+                <div className="reveal stage-side" style={{ animationDelay: "0.65s" }}>
+                  <Mascot jumping={mascotJump} />
+                </div>
+              )}
+
+              <div className="reveal stage-center" style={{ animationDelay: "0.35s" }}>
+                <PhotoFrame photoUrl={config.photoUrl} name={config.recipientName} />
+              </div>
+
+              {config.showCake && (
+                <div className="reveal stage-side" style={{ animationDelay: "0.8s" }}>
+                  <Cake candleLit={candleLit} onBlow={blowCandles} />
+                </div>
+              )}
+            </div>
+
+            <div className="reveal envelope-slot" style={{ animationDelay: "1.05s" }}>
+              <Envelope open={cardOpen} onClick={openCard} />
+            </div>
+          </section>
+
+          <button
+            type="button"
+            className="mute-btn"
+            onClick={toggleMute}
+            aria-label={muted ? "Unmute music" : "Mute music"}
+          >
+            {muted ? "🔇" : "🔊"}
+          </button>
+        </>
+      )}
+
+      {cardOpen && <GreetingCard onClose={() => setCardOpen(false)} />}
+
+      {flash && <div className="flash" aria-hidden="true" />}
+    </main>
+  );
 }
 
-export default App
+export default App;
