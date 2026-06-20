@@ -14,7 +14,7 @@ export interface BirthdayConfig {
 
 export const config: BirthdayConfig = {
   /** Name of the birthday person — shown big on the card. */
-  recipientName: "Heiue Quyen",
+  recipientName: "Hieu Quyen",
 
   /** The greeting message. Line breaks are kept. Emojis welcome 🎉 */
   greeting: `Chúc mừng sinh nhật! 🎉
