@@ -344,6 +344,11 @@
   margin-top: clamp(0px, 0.8vh, 10px);
 }
 
+/* below the envelope, clear of its bouncing "open me" hint */
+.sketchbook-slot {
+  margin-top: clamp(46px, 6vh, 64px);
+}
+
 /* ── balloons ── */
 .balloons {
   position: absolute;

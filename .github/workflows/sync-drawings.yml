@@ -1,0 +1,219 @@
+name: Sync drawings from issues
+
+# The sketchbook on the site (#/sketchbook) sends each finished page as an issue
+# labelled `sketch`, opened with a key made on the owner's account. This turns
+# it into a file under src/drawings/ and publishes it. Take the `sketch` label
+# off and the drawing comes back down; put it back and it returns. See
+# src/drawings/_FORMAT.md.
+
+# No `opened` on purpose: an issue created with its label already on fires BOTH
+# `opened` and `labeled`, and both would pass the gate below — two runs for one
+# drawing, racing each other to push. `labeled` alone covers it.
+on:
+  issues:
+    types: [edited, labeled, unlabeled]
+
+# Deny by default; each job asks for the least it needs.
+permissions: {}
+
+# Never cancelled: two runs would race on `git push`, and half a cancelled run
+# means a drawing committed but never deployed.
+concurrency:
+  group: sync-drawings
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    # ── THE SECURITY GATE ───────────────────────────────────────────────────────
+    # A static site has no server to check who is drawing, so this is the only
+    # thing standing between the outside world and the sketchbook. It is at job
+    # level on purpose: for an issue that isn't the owner's, not one step runs.
+    #
+    #   issue.user.login   — the owner OPENED it (every sketchbook key is made on
+    #                        the owner's account, so a page from either of you
+    #                        arrives as the owner's issue and passes)
+    #   sender.login       — the owner SAVED it. On `edited`, issue.user is still
+    #                        the original author while sender is whoever hit
+    #                        save, so without this a collaborator could edit the
+    #                        issue and feed text into a job holding contents: write.
+    #   author_association — computed by GitHub, not spoofable. Belt and braces.
+    #   the label          — so ordinary issues aren't mistaken for drawings.
+    #
+    # This fails CLOSED: move the repo to an organisation and author_association
+    # becomes MEMBER while repository_owner becomes the org, so the gate stops
+    # matching and nothing runs. Deliberate — but it will look like a mystery
+    # bug one day, so it is written down here.
+    if: >-
+      github.event.issue.user.login == github.repository_owner &&
+      github.event.sender.login == github.repository_owner &&
+      github.event.issue.author_association == 'OWNER' &&
+      contains(github.event.issue.labels.*.name, 'sketch') &&
+      (github.event.action != 'labeled' || github.event.label.name == 'sketch')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # commit the drawing
+      issues: write # comment back + label
+      actions: write # dispatch deploy.yml
+    steps:
+      # ref: main, so a run that waited in the queue starts from today's tip
+      # rather than the SHA main had when the issue was saved.
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Build the drawing
+        id: build
+        # Issue text only ever reaches the script through env:, never through
+        # `${{ }}` inside run: — that would paste it into the shell script itself.
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_CREATED: ${{ github.event.issue.created_at }}
+        run: node .github/scripts/sync-drawing.mjs
+
+      - name: Commit
+        id: commit
+        env:
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A src/drawings
+          if git diff --cached --quiet; then
+            echo 'pushed=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git commit -m "drawings: sync from issue #${ISSUE_NUMBER}"
+          # Something else can land on main between the checkout and here. This
+          # only ever touches src/drawings, so replaying it on top is clean.
+          for attempt in 1 2 3; do
+            git push && break
+            [ "$attempt" -lt 3 ] || exit 1
+            git pull --rebase --quiet origin main
+          done
+          echo 'pushed=true' >> "$GITHUB_OUTPUT"
+
+      # A push made with GITHUB_TOKEN never triggers deploy.yml by itself.
+      - name: Trigger the deploy
+        if: steps.commit.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: gh workflow run deploy.yml --ref main
+
+      - name: Comment and label
+        if: steps.commit.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          DRAWING_ID: ${{ steps.build.outputs.drawing_id }}
+          STROKE_COUNT: ${{ steps.build.outputs.stroke_count }}
+        run: |
+          set -euo pipefail
+          body="Pinned up: https://hanaqwin.github.io/#/sketchbook/${DRAWING_ID}"
+          body="${body}"$'\n\n'"${STROKE_COUNT:-0} stroke(s). Give the deploy about a minute."
+          gh label create published --color 9EE7D3 --description 'live on the site' || true
+          gh issue edit "$ISSUE_NUMBER" --add-label published || true
+          gh issue comment "$ISSUE_NUMBER" --body "$body"
+
+      - name: Report a failure back to the issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" \
+            --body "Could not pin this one up. Log: ${RUN_URL}" || true
+
+  # The `sketch` label came off: take the drawing back down. Re-adding the label
+  # rebuilds it under the same name, because the date comes from created_at.
+  unpublish:
+    if: >-
+      github.event.action == 'unlabeled' &&
+      github.event.label.name == 'sketch' &&
+      github.event.sender.login == github.repository_owner &&
+      github.event.issue.user.login == github.repository_owner
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      actions: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Remove the drawing
+        id: remove
+        env:
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: node .github/scripts/unpublish-drawing.mjs
+
+      - name: Commit
+        id: commit
+        if: steps.remove.outputs.removed == 'true'
+        env:
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A src/drawings
+          if git diff --cached --quiet; then
+            echo 'pushed=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git commit -m "drawings: unpublish issue #${ISSUE_NUMBER}"
+          for attempt in 1 2 3; do
+            git push && break
+            [ "$attempt" -lt 3 ] || exit 1
+            git pull --rebase --quiet origin main
+          done
+          echo 'pushed=true' >> "$GITHUB_OUTPUT"
+
+      - name: Trigger the deploy
+        if: steps.commit.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: gh workflow run deploy.yml --ref main
+
+      - name: Say so on the issue
+        if: steps.commit.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          body='Taken off the site. Add the `sketch` label again to put it back.'
+          body="${body}"$'\n\n'"It is still in this repo's git history, and the repo is public — taking it down is not the same as erasing it."
+          gh issue edit "$ISSUE_NUMBER" --remove-label published || true
+          gh issue comment "$ISSUE_NUMBER" --body "$body"
+
+  # A `sketch` label on an issue that isn't the owner's. GitHub drops labels from
+  # issues opened by people without push access, so this takes a collaborator
+  # labelling someone else's issue. Untrusted input, so: no checkout, no issue
+  # text, just a fixed string.
+  reject:
+    if: >-
+      github.event.action == 'labeled' &&
+      github.event.label.name == 'sketch' &&
+      github.event.issue.user.login != github.repository_owner
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          gh issue close "$ISSUE_NUMBER" --reason 'not planned' \
+            --comment 'This sketchbook only takes drawings sent with a key from the repo owner.'
