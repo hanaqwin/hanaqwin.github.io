@@ -22,6 +22,7 @@ Semua yang bisa diubah ada di **`src/config.ts`**:
 | `senderName` | Namamu — tampil sebagai tanda tangan kartu |
 | `photoUrl` | Nama file foto (taruh di `public/`). Kosong = pakai placeholder lucu |
 | `musicUrl` | Nama file lagu (taruh di `public/`) |
+| `sketchbookRepo` | Repo tujuan gambar dari sketchbook (`owner/repo`). Kosong = sketchbook disembunyikan |
 | `showBalloons` / `showCake` / `showMascot` / `enableSfx` | Nyalakan / matikan elemen ekstra |
 
 ### 🎵 Backsound (lagu)
@@ -32,6 +33,17 @@ musiknya saja yang dilewati. Efek suara klik/pop dibuat dari kode, jadi tanpa fi
 ### 📸 Foto
 Taruh foto di folder `public/` (mis. `public/photo.jpg`), lalu set
 `photoUrl: "photo.jpg"` di `src/config.ts`.
+
+### 🖍️ Sketchbook
+Di bawah amplop ada buku gambar (`#/sketchbook`): gambar langsung di website, lalu
+**pin it up** — gambarnya dikirim sebagai issue berlabel `sketch`, workflow
+`sync-drawings.yml` menyimpannya ke `src/drawings/` dan deploy ulang, dan sekitar
+semenit kemudian semua orang bisa melihatnya. Siapa pun bisa mencoret-coret,
+tapi untuk memajang gambar butuh **key**: tiap orang (Miaw, Hieu Quyen) punya
+key GitHub sendiri, dan key itulah yang menentukan nama di gambarnya.
+
+Cara membuat & mendaftarkan key (`bun run add-key`), plus cara menurunkan gambar,
+ada di **[`src/drawings/_FORMAT.md`](src/drawings/_FORMAT.md)**.
 
 ## 💻 Jalankan di lokal
 ```bash

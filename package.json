@@ -7,10 +7,12 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "add-key": "node scripts/add-sketchbook-key.mjs"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4",
+    "perfect-freehand": "1.2.3",
     "react": "^19.2.6",
     "react-dom": "^19.2.6"
   },

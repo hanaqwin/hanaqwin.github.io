@@ -6,6 +6,7 @@ export interface BirthdayConfig {
   switchHint: string;
   photoUrl: string;
   musicUrl: string;
+  sketchbookRepo: string;
   showBalloons: boolean;
   showCake: boolean;
   showMascot: boolean;
@@ -46,6 +47,14 @@ Cứ mãi là chính mình thôi, vì như vậy là đã dễ thương lắm r�
    * If the file is missing the site still works — music is just skipped.
    */
   musicUrl: "hbd_viet_song.mp3",
+
+  /**
+   * The sketchbook (#/sketchbook): pages drawn right on the site, pinned up
+   * for everyone. "owner/repo" of THIS site's repo — drawings are sent there
+   * as issues. Drawing needs a key: see src/drawings/_FORMAT.md.
+   * Leave "" and the sketchbook disappears from the party entirely.
+   */
+  sketchbookRepo: "hanaqwin/hanaqwin.github.io",
 
   // ── Optional fun extras — set any to false to turn it off ──────────
   showBalloons: true,

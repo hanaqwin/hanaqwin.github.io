@@ -7,6 +7,9 @@ import Cake from "./components/Cake";
 import Mascot from "./components/Mascot";
 import Envelope from "./components/Envelope";
 import GreetingCard from "./components/GreetingCard";
+import Sketchbook from "./components/sketchbook/Sketchbook";
+import SketchbookShelf from "./components/sketchbook/SketchbookShelf";
+import { sketchRepo } from "./lib/github";
 import { playMusic, setMusicMuted, playSfx } from "./lib/audio";
 import { fireworks, burst } from "./lib/confetti";
 import "./App.css";
@@ -89,6 +92,12 @@ function App() {
             <div className="reveal envelope-slot" style={{ animationDelay: "1.05s" }}>
               <Envelope open={cardOpen} onClick={openCard} />
             </div>
+
+            {sketchRepo && (
+              <div className="reveal sketchbook-slot" style={{ animationDelay: "1.3s" }}>
+                <SketchbookShelf />
+              </div>
+            )}
           </section>
 
           <button
@@ -103,6 +112,10 @@ function App() {
       )}
 
       {cardOpen && <GreetingCard onClose={() => setCardOpen(false)} />}
+
+      {/* Mounted for the whole site: it shows itself only when the hash points
+          into the sketchbook, so a link to one page works from the dark intro too. */}
+      <Sketchbook />
 
       {flash && <div className="flash" aria-hidden="true" />}
     </main>
