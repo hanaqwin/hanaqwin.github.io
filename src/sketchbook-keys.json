@@ -1,4 +1,13 @@
 {
   "v": 1,
-  "keys": []
+  "keys": [
+    {
+      "name": "Miaw",
+      "sha256": "b20f0be72ca8cb12c6cbcf64c4d9dd1f12fe75f8b3083db599b7116c5c26dbb3"
+    },
+    {
+      "name": "Hieu Quyen",
+      "sha256": "e96b334ae887a8e0facf3449426eb5c8693583e12f3b0aa94a316ff34195f7ea"
+    }
+  ]
 }
