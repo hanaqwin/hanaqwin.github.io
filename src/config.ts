@@ -7,6 +7,7 @@ export interface BirthdayConfig {
   photoUrl: string;
   musicUrl: string;
   sketchbookRepo: string;
+  showIntro: boolean;
   showBalloons: boolean;
   showCake: boolean;
   showMascot: boolean;
@@ -42,7 +43,8 @@ Cứ mãi là chính mình thôi, vì như vậy là đã dễ thương lắm r�
   photoUrl: "main.jpg",
 
   /**
-   * Background birthday song (starts after the light switch is flipped).
+   * Background birthday song (starts when the light switch is flipped — or,
+   * with the intro off, on the first tap, since browsers block autoplay).
    * Drop your .mp3 into the `public/` folder and put its name here.
    * If the file is missing the site still works — music is just skipped.
    */
@@ -57,6 +59,8 @@ Cứ mãi là chính mình thôi, vì như vậy là đã dễ thương lắm r�
   sketchbookRepo: "hanaqwin/hanaqwin.github.io",
 
   // ── Optional fun extras — set any to false to turn it off ──────────
+  /** The dark opening with the candle + light switch. Off = the party is already on. */
+  showIntro: false,
   showBalloons: true,
   showCake: true,
   showMascot: true,

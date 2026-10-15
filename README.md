@@ -23,6 +23,7 @@ Semua yang bisa diubah ada di **`src/config.ts`**:
 | `photoUrl` | Nama file foto (taruh di `public/`). Kosong = pakai placeholder lucu |
 | `musicUrl` | Nama file lagu (taruh di `public/`) |
 | `sketchbookRepo` | Repo tujuan gambar dari sketchbook (`owner/repo`). Kosong = sketchbook disembunyikan |
+| `showIntro` | Intro gelap (lilin + saklar). `false` = langsung pesta; musik mulai di klik/tap pertama |
 | `showBalloons` / `showCake` / `showMascot` / `enableSfx` | Nyalakan / matikan elemen ekstra |
 
 ### 🎵 Backsound (lagu)

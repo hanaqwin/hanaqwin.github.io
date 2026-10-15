@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { config } from "./config";
 import DarkScene from "./components/DarkScene";
 import Balloons from "./components/Balloons";
@@ -17,12 +17,30 @@ import "./App.css";
 type Scene = "dark" | "lit";
 
 function App() {
-  const [scene, setScene] = useState<Scene>("dark");
+  const [scene, setScene] = useState<Scene>(config.showIntro ? "dark" : "lit");
   const [flash, setFlash] = useState(false);
   const [cardOpen, setCardOpen] = useState(false);
   const [muted, setMuted] = useState(false);
   const [candleLit, setCandleLit] = useState(true);
-  const [mascotJump, setMascotJump] = useState(false);
+  const [mascotJump, setMascotJump] = useState(!config.showIntro);
+
+  // With the intro off there's no switch to flip, so the party starts on load.
+  // Browsers hold the song back until a gesture, so it also waits for the first tap/key.
+  useEffect(() => {
+    if (config.showIntro) return;
+    playMusic();
+    window.addEventListener("pointerdown", playMusic, { once: true });
+    window.addEventListener("keydown", playMusic, { once: true });
+    const timers = [
+      window.setTimeout(fireworks, 300),
+      window.setTimeout(() => setMascotJump(false), 1300),
+    ];
+    return () => {
+      window.removeEventListener("pointerdown", playMusic);
+      window.removeEventListener("keydown", playMusic);
+      timers.forEach((t) => window.clearTimeout(t));
+    };
+  }, []);
 
   const turnOnTheLights = () => {
     if (scene === "lit") return;
